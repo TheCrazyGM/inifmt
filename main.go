@@ -90,11 +90,12 @@ func singleSpaceFormat(scanner *bufio.Scanner) []string {
 	return output
 }
 
-
-var writeFlag bool
-var perSectionFlag bool
-var singleSpaceFlag bool
-var includeCommentsFlag bool
+var (
+	writeFlag           bool
+	perSectionFlag      bool
+	singleSpaceFlag     bool
+	includeCommentsFlag bool
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "inifmt [file]",
