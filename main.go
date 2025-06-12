@@ -52,7 +52,6 @@ Use --single-space/-u to remove formatting and ensure only a single space around
 	rootCmd.Flags().BoolVarP(&cfg.includeComments, "include-comments", "C", false, "Include comments and blank lines in alignment (default: false)")
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
