@@ -125,7 +125,7 @@ func writeToFile(filename string, lines []string) error {
 
 // alignIni aligns INI content according to the given configuration.
 func alignIni(scanner *bufio.Scanner, cfg formatConfig) ([]string, error) {
-	var lines []string
+	lines := make([]string, 0)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
@@ -133,11 +133,15 @@ func alignIni(scanner *bufio.Scanner, cfg formatConfig) ([]string, error) {
 		return nil, fmt.Errorf("reading input: %w", err)
 	}
 
+	if len(lines) == 0 { // If all lines were consumed by scanner error or input was empty
+		return make([]string, 0), nil
+	}
+
 	if !cfg.perSection {
 		return alignSection(lines, cfg.includeComments), nil
 	}
 
-	var result []string
+	result := make([]string, 0, len(lines))
 	var sectionLines []string
 
 	flushSection := func() {
@@ -157,12 +161,18 @@ func alignIni(scanner *bufio.Scanner, cfg formatConfig) ([]string, error) {
 		sectionLines = append(sectionLines, line)
 	}
 	flushSection()
-
+	// Ensure non-nil return even if all lines were section headers or filtered out
+	if result == nil && len(lines) > 0 {
+		return make([]string, 0), nil
+	}
 	return result, nil
 }
 
 // alignSection aligns the equals signs in the given lines.
 func alignSection(lines []string, includeComments bool) []string {
+	if len(lines) == 0 {
+		return make([]string, 0)
+	}
 	maxPos := 0
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
@@ -182,6 +192,16 @@ func alignSection(lines []string, includeComments bool) []string {
 			continue
 		}
 
+		if includeComments && (trimmed == "" || strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "#")) {
+			padWidth := maxPos + 2
+			spacesNeeded := padWidth - len(line)
+			if spacesNeeded < 0 {
+				spacesNeeded = 0
+			}
+			result = append(result, line+strings.Repeat(" ", spacesNeeded))
+			continue
+		}
+
 		pos := strings.Index(line, "=")
 		if pos > 0 {
 			spacesNeeded := maxPos - pos
@@ -198,7 +218,7 @@ func alignSection(lines []string, includeComments bool) []string {
 
 // singleSpaceFormat formats lines to have single spaces around '='.
 func singleSpaceFormat(scanner *bufio.Scanner) ([]string, error) {
-	var result []string
+	result := make([]string, 0)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if pos := strings.Index(line, "="); pos > 0 {
