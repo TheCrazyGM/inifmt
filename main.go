@@ -137,6 +137,26 @@ func alignIni(scanner *bufio.Scanner, cfg formatConfig) ([]string, error) {
 		return make([]string, 0), nil
 	}
 
+	for i, line := range lines {
+		raw := strings.TrimRight(line, " \t")
+		trimmed := strings.TrimSpace(raw)
+		if strings.HasPrefix(trimmed, "[") {
+			if idx := strings.Index(trimmed, "]"); idx != -1 {
+				header := trimmed[:idx+1]
+				rest := strings.TrimSpace(trimmed[idx+1:])
+				if rest != "" {
+					marker := rest[:1]
+					text := strings.TrimSpace(rest[1:])
+					lines[i] = header + " " + marker + " " + text
+				} else {
+					lines[i] = header
+				}
+				continue
+			}
+		}
+		lines[i] = raw
+	}
+
 	if !cfg.perSection {
 		return alignSection(lines, cfg.includeComments), nil
 	}
@@ -152,11 +172,20 @@ func alignIni(scanner *bufio.Scanner, cfg formatConfig) ([]string, error) {
 	}
 
 	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]") {
-			flushSection()
-			result = append(result, line)
-			continue
+		raw := strings.TrimRight(line, " \t")
+		trimmed := strings.TrimSpace(raw)
+		if strings.HasPrefix(trimmed, "[") {
+			if idx := strings.Index(trimmed, "]"); idx != -1 {
+				flushSection()
+				header := trimmed[:idx+1]
+				comment := strings.TrimSpace(trimmed[idx+1:])
+				if comment != "" {
+					result = append(result, header+" "+comment)
+				} else {
+					result = append(result, header)
+				}
+				continue
+			}
 		}
 		sectionLines = append(sectionLines, line)
 	}
@@ -173,57 +202,74 @@ func alignSection(lines []string, includeComments bool) []string {
 	if len(lines) == 0 {
 		return make([]string, 0)
 	}
-	maxPos := 0
+
+	// First pass – determine the maximum key length (excluding indentation) among lines with '='.
+	maxKeyLen := 0
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if !includeComments && (trimmed == "" || strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "#")) {
 			continue
 		}
-		if pos := strings.Index(line, "="); pos > maxPos {
-			maxPos = pos
+		eqPos := strings.Index(line, "=")
+		if eqPos < 0 {
+			continue
+		}
+		key := strings.TrimSpace(line[:eqPos])
+		if l := len(key); l > maxKeyLen {
+			maxKeyLen = l
 		}
 	}
 
-	var result []string
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if !includeComments && (trimmed == "" || strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "#")) {
-			result = append(result, line)
-			continue
-		}
+	result := make([]string, 0, len(lines))
 
-		if includeComments && (trimmed == "" || strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "#")) {
-			padWidth := maxPos + 2
-			spacesNeeded := padWidth - len(line)
-			if spacesNeeded < 0 {
-				spacesNeeded = 0
+	for _, line := range lines {
+		original := strings.TrimRight(line, " \t") // drop trailing whitespace
+		trimmed := strings.TrimSpace(original)
+
+		// Handle comment / blank lines
+		if trimmed == "" || strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "#") {
+			if includeComments {
+				// Pad comment/blank lines to keep the alignment column visually consistent
+				padWidth := maxKeyLen + 3 // 1 space, '=' , 1 space
+				if len(original) < padWidth {
+					original += strings.Repeat(" ", padWidth-len(original))
+				}
 			}
-			result = append(result, line+strings.Repeat(" ", spacesNeeded))
+			result = append(result, original)
 			continue
 		}
 
-		pos := strings.Index(line, "=")
-		if pos > 0 {
-			spacesNeeded := maxPos - pos
-			left := line[:pos]
-			right := line[pos+1:]
-			alignedLine := fmt.Sprintf("%s%*s=%s", left, spacesNeeded, "", right)
-			result = append(result, alignedLine)
-		} else {
-			result = append(result, line)
+		eqPos := strings.Index(original, "=")
+		if eqPos < 0 {
+			// Line without '=' – leave as-is (after trimming trailing whitespace)
+			result = append(result, original)
+			continue
 		}
+
+		key := strings.TrimSpace(original[:eqPos])
+		// Normalize internal whitespace in value
+		right := strings.Join(strings.Fields(original[eqPos+1:]), " ")
+
+		spacesNeeded := maxKeyLen - len(key)
+		if spacesNeeded < 0 {
+			spacesNeeded = 0
+		}
+		formatted := key + strings.Repeat(" ", spacesNeeded) + " = " + right
+		result = append(result, formatted)
 	}
+
 	return result
 }
 
-// singleSpaceFormat formats lines to have single spaces around '='.
+// singleSpaceFormat formats lines to have single spaces around '=' and trims trailing whitespace.
 func singleSpaceFormat(scanner *bufio.Scanner) ([]string, error) {
 	result := make([]string, 0)
 	for scanner.Scan() {
-		line := scanner.Text()
-		if pos := strings.Index(line, "="); pos > 0 {
+		line := strings.TrimRight(scanner.Text(), " \t") // remove trailing spaces
+		if pos := strings.Index(line, "="); pos >= 0 {
 			left := strings.TrimSpace(line[:pos])
-			right := strings.TrimSpace(line[pos+1:])
+			// Normalize internal whitespace in value
+			right := strings.Join(strings.Fields(line[pos+1:]), " ")
 			result = append(result, fmt.Sprintf("%s = %s", left, right))
 		} else {
 			result = append(result, line)
