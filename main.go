@@ -237,10 +237,7 @@ func alignSection(lines []string) []string {
 		// Normalize internal whitespace in value
 		right := strings.Join(strings.Fields(original[eqPos+1:]), " ")
 
-		spacesNeeded := maxKeyLen - len(key)
-		if spacesNeeded < 0 {
-			spacesNeeded = 0
-		}
+		spacesNeeded := max(maxKeyLen-len(key), 0)
 		formatted := key + strings.Repeat(" ", spacesNeeded) + " = " + right
 		result = append(result, formatted)
 	}
