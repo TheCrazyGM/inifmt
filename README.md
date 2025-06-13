@@ -10,12 +10,21 @@
 
 ## Installation
 
-To install, clone the repository and build/install (adjust according to your environment):
+Requires Go 1.16 or later.
+
+Install via `go install`:
 
 ```bash
-git clone <repository-url>
+go install github.com/thecrazygm/inifmt@latest
+```
+
+Alternatively, build from source:
+
+```bash
+git clone https://github.com/thecrazygm/inifmt.git
 cd inifmt
-make install
+go build -o inifmt
+mv inifmt $GOBIN/  # or move to a directory in your PATH
 ```
 
 ## Usage
@@ -39,7 +48,6 @@ inifmt -h
 ```bash
 inifmt input.ini > output.ini
 ```
-
 
 **Single-space formatting mode:**
 
