@@ -13,16 +13,14 @@ import (
 
 // config holds the application configuration.
 type config struct {
-	write           bool
-	perSection      bool
-	singleSpace     bool
-	includeComments bool
+	write       bool
+	perSection  bool
+	singleSpace bool
 }
 
 // formatConfig holds formatting configuration.
 type formatConfig struct {
-	perSection      bool
-	includeComments bool
+	perSection bool
 }
 
 func main() {
@@ -35,8 +33,6 @@ func main() {
 If a file is provided as an argument, it will be read and formatted.
 If no file is provided, input will be read from stdin (e.g., pipe or redirect).
 
-By default, comments and blank lines are not included in alignment (output as-is).
-Use --include-comments/-C to include them in alignment.
 By default, alignment is global (across the whole file).
 Use --per-section/-s to align within each section independently.
 Use --single-space/-u to remove formatting and ensure only a single space around '='.`,
@@ -49,7 +45,6 @@ Use --single-space/-u to remove formatting and ensure only a single space around
 	rootCmd.Flags().BoolVarP(&cfg.write, "write", "w", false, "Write changes back to the file (if file argument is given)")
 	rootCmd.Flags().BoolVarP(&cfg.perSection, "per-section", "s", false, "Align '=' within each INI section independently")
 	rootCmd.Flags().BoolVarP(&cfg.singleSpace, "single-space", "u", false, "Remove formatting and ensure only a single space around '='")
-	rootCmd.Flags().BoolVarP(&cfg.includeComments, "include-comments", "C", false, "Include comments and blank lines in alignment (default: false)")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -80,8 +75,7 @@ func run(cfg config, args []string) error {
 		result, processErr = singleSpaceFormat(scanner)
 	} else {
 		fc := formatConfig{
-			perSection:      cfg.perSection,
-			includeComments: cfg.includeComments,
+			perSection: cfg.perSection,
 		}
 		result, processErr = alignIni(scanner, fc)
 	}
@@ -158,7 +152,7 @@ func alignIni(scanner *bufio.Scanner, cfg formatConfig) ([]string, error) {
 	}
 
 	if !cfg.perSection {
-		return alignSection(lines, cfg.includeComments), nil
+		return alignSection(lines), nil
 	}
 
 	result := make([]string, 0, len(lines))
@@ -166,7 +160,7 @@ func alignIni(scanner *bufio.Scanner, cfg formatConfig) ([]string, error) {
 
 	flushSection := func() {
 		if len(sectionLines) > 0 {
-			result = append(result, alignSection(sectionLines, cfg.includeComments)...)
+			result = append(result, alignSection(sectionLines)...)
 			sectionLines = nil
 		}
 	}
@@ -198,7 +192,7 @@ func alignIni(scanner *bufio.Scanner, cfg formatConfig) ([]string, error) {
 }
 
 // alignSection aligns the equals signs in the given lines.
-func alignSection(lines []string, includeComments bool) []string {
+func alignSection(lines []string) []string {
 	if len(lines) == 0 {
 		return make([]string, 0)
 	}
@@ -207,7 +201,7 @@ func alignSection(lines []string, includeComments bool) []string {
 	maxKeyLen := 0
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if !includeComments && (trimmed == "" || strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "#")) {
+		if trimmed == "" || strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
 		eqPos := strings.Index(line, "=")
@@ -228,13 +222,6 @@ func alignSection(lines []string, includeComments bool) []string {
 
 		// Handle comment / blank lines
 		if trimmed == "" || strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "#") {
-			if includeComments {
-				// Pad comment/blank lines to keep the alignment column visually consistent
-				padWidth := maxKeyLen + 3 // 1 space, '=' , 1 space
-				if len(original) < padWidth {
-					original += strings.Repeat(" ", padWidth-len(original))
-				}
-			}
 			result = append(result, original)
 			continue
 		}

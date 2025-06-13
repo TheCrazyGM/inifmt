@@ -8,50 +8,38 @@ import (
 
 func TestAlignSection(t *testing.T) {
 	tests := []struct {
-		name            string
-		lines           []string
-		includeComments bool
+		name  string
+		lines []string
 	}{
 		{
-			name:            "basic alignment",
-			lines:           []string{"key1=val1", "longerkey=val2", "k=v"},
-			includeComments: false,
+			name:  "basic alignment",
+			lines: []string{"key1=val1", "longerkey=val2", "k=v"},
 		},
 		{
-			name:            "with comments and blanks, exclude comments",
-			lines:           []string{"; comment", "key1=val1", "", "longerkey=val2"},
-			includeComments: false,
+			name:  "with comments and blanks",
+			lines: []string{"; comment", "key1=val1", "", "longerkey=val2"},
 		},
 		{
-			name:            "with comments and blanks, include comments",
-			lines:           []string{"; comment", "key1=val1", "", "longerkey=val2"},
-			includeComments: true,
+			name:  "no equals sign",
+			lines: []string{"key1", "key2"},
 		},
 		{
-			name:            "no equals sign",
-			lines:           []string{"key1", "key2"},
-			includeComments: false,
+			name:  "empty input",
+			lines: []string{},
 		},
 		{
-			name:            "empty input",
-			lines:           []string{},
-			includeComments: false,
+			name:  "mixed with and without equals",
+			lines: []string{"key1=val1", "noequals", "key2=val2"},
 		},
 		{
-			name:            "mixed with and without equals",
-			lines:           []string{"key1=val1", "noequals", "key2=val2"},
-			includeComments: false,
-		},
-		{
-			name:            "pre-aligned",
-			lines:           []string{"key1 = val1", "key2 = val2"},
-			includeComments: false,
+			name:  "pre-aligned",
+			lines: []string{"key1 = val1", "key2 = val2"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := alignSection(tt.lines, tt.includeComments)
+			got := alignSection(tt.lines)
 			assertAligned(t, got)
 		})
 	}
@@ -109,7 +97,7 @@ func TestAlignIni(t *testing.T) {
 	}{
 		{
 			name: "global alignment",
-			cfg:  formatConfig{perSection: false, includeComments: false},
+			cfg:  formatConfig{perSection: false},
 			inputLines: []string{
 				"key1=val1",
 				"[section1]",
@@ -119,7 +107,7 @@ func TestAlignIni(t *testing.T) {
 		},
 		{
 			name: "per-section alignment",
-			cfg:  formatConfig{perSection: true, includeComments: false},
+			cfg:  formatConfig{perSection: true},
 			inputLines: []string{
 				"global_key=global_value",
 				"[section1]",
@@ -133,7 +121,7 @@ func TestAlignIni(t *testing.T) {
 		},
 		{
 			name: "per-section with comments included",
-			cfg:  formatConfig{perSection: true, includeComments: true},
+			cfg:  formatConfig{perSection: true},
 			inputLines: []string{
 				"[section1]",
 				"; comment1",
@@ -145,7 +133,7 @@ func TestAlignIni(t *testing.T) {
 		},
 		{
 			name:       "empty input",
-			cfg:        formatConfig{perSection: false, includeComments: false},
+			cfg:        formatConfig{perSection: false},
 			inputLines: []string{},
 		},
 	}

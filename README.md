@@ -6,7 +6,6 @@
 
 - Aligns equals signs (`=`) in key-value pairs.
 - Operates on the entire file or on a per-section basis.
-- Optionally aligns comments and blank lines.
 - Single-space formatting mode ensuring exactly one space around `=`.
 
 ## Installation
@@ -41,11 +40,6 @@ inifmt -h
 inifmt input.ini > output.ini
 ```
 
-**Per-section alignment including comments:**
-
-```bash
-inifmt --per-section -C input.ini -w
-```
 
 **Single-space formatting mode:**
 
@@ -58,7 +52,6 @@ inifmt --single-space input.ini > output.ini
 - `-w`, `--write`: Write changes back to the file (when a filename is provided).
 - `-s`, `--per-section`: Align `=` signs within each section independently.
 - `-u`, `--single-space`: Ensure exactly one space around `=` signs.
-- `-C`, `--include-comments`: Include comments in the alignment process.
 
 ## License
 
