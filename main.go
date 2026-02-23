@@ -204,11 +204,11 @@ func alignSection(lines []string) []string {
 		if trimmed == "" || strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
-		eqPos := strings.Index(line, "=")
-		if eqPos < 0 {
+		before, _, ok := strings.Cut(line, "=")
+		if !ok {
 			continue
 		}
-		key := strings.TrimSpace(line[:eqPos])
+		key := strings.TrimSpace(before)
 		if l := len(key); l > maxKeyLen {
 			maxKeyLen = l
 		}
@@ -226,16 +226,16 @@ func alignSection(lines []string) []string {
 			continue
 		}
 
-		eqPos := strings.Index(original, "=")
-		if eqPos < 0 {
+		before, after, ok := strings.Cut(original, "=")
+		if !ok {
 			// Line without '=' – leave as-is (after trimming trailing whitespace)
 			result = append(result, original)
 			continue
 		}
 
-		key := strings.TrimSpace(original[:eqPos])
+		key := strings.TrimSpace(before)
 		// Normalize internal whitespace in value
-		right := strings.Join(strings.Fields(original[eqPos+1:]), " ")
+		right := strings.Join(strings.Fields(after), " ")
 
 		spacesNeeded := max(maxKeyLen-len(key), 0)
 		formatted := key + strings.Repeat(" ", spacesNeeded) + " = " + right
@@ -250,10 +250,10 @@ func singleSpaceFormat(scanner *bufio.Scanner) ([]string, error) {
 	result := make([]string, 0)
 	for scanner.Scan() {
 		line := strings.TrimRight(scanner.Text(), " \t") // remove trailing spaces
-		if pos := strings.Index(line, "="); pos >= 0 {
-			left := strings.TrimSpace(line[:pos])
+		if before, after, ok := strings.Cut(line, "="); ok {
+			left := strings.TrimSpace(before)
 			// Normalize internal whitespace in value
-			right := strings.Join(strings.Fields(line[pos+1:]), " ")
+			right := strings.Join(strings.Fields(after), " ")
 			result = append(result, fmt.Sprintf("%s = %s", left, right))
 		} else {
 			result = append(result, line)
